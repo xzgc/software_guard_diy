@@ -377,6 +377,93 @@ async def upload_version(
     )
 
 
+@router.post("/{software_id}/screenshots")
+async def upload_screenshot(
+    software_id: int,
+    slot: int = Form(..., ge=1, le=3),
+    file: Optional[UploadFile] = File(None),
+    url: Optional[str] = Form(None),
+    current_user: User = Depends(require_ops),
+    db: Session = Depends(get_db)
+):
+    """上传/设置软件界面图（slot 1/2/3）"""
+    software = db.query(Software).filter(Software.id == software_id).first()
+    if not software:
+        raise HTTPException(status_code=404, detail="软件不存在")
+
+    if not file and not (url and url.strip()):
+        raise HTTPException(status_code=400, detail="请提供文件或图片URL")
+
+    allowed_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'}
+    max_size = 5 * 1024 * 1024  # 5MB
+
+    # 文件模式
+    if file:
+        file_ext = os.path.splitext(file.filename)[1].lower() if file.filename else ''
+        if file_ext not in allowed_extensions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"不支持的图片类型: {file_ext}，允许的类型: {', '.join(sorted(allowed_extensions))}"
+            )
+
+        content = await file.read()
+        if len(content) > max_size:
+            raise HTTPException(status_code=400, detail="图片大小不能超过5MB")
+
+        import uuid
+        unique_filename = f"{software_id}_s{slot}_{uuid.uuid4().hex[:8]}{file_ext}"
+        storage_path = get_storage_path(db)
+        screenshot_dir = os.path.join(storage_path, "screenshots")
+        os.makedirs(screenshot_dir, exist_ok=True)
+        file_path = os.path.join(screenshot_dir, unique_filename)
+
+        async with aiofiles.open(file_path, "wb") as f:
+            await f.write(content)
+
+        # 删除该槽位旧的本地文件（如果旧值是本地路径）
+        old_url = getattr(software, f"screenshot_url_{slot}")
+        if old_url and old_url.startswith("/api/software/"):
+            old_filename = old_url.split("/")[-1]
+            old_path = os.path.join(screenshot_dir, old_filename)
+            if os.path.exists(old_path):
+                try:
+                    os.remove(old_path)
+                except Exception:
+                    pass
+
+        new_url = f"/api/software/{software_id}/screenshots/file/{unique_filename}"
+        setattr(software, f"screenshot_url_{slot}", new_url)
+        db.commit()
+
+        return {
+            "screenshot_url": new_url,
+            "slot": slot,
+            "message": "截图上传成功"
+        }
+
+    # URL 模式
+    url_value = url.strip()
+    old_url = getattr(software, f"screenshot_url_{slot}")
+    if old_url and old_url.startswith("/api/software/"):
+        old_filename = old_url.split("/")[-1]
+        storage_path = get_storage_path(db)
+        old_path = os.path.join(storage_path, "screenshots", old_filename)
+        if os.path.exists(old_path):
+            try:
+                os.remove(old_path)
+            except Exception:
+                pass
+
+    setattr(software, f"screenshot_url_{slot}", url_value)
+    db.commit()
+
+    return {
+        "screenshot_url": url_value,
+        "slot": slot,
+        "message": "截图URL设置成功"
+    }
+
+
 @router.post("/{software_id}/logo", response_model=dict)
 async def upload_logo(
     software_id: int,
