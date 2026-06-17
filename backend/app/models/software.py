@@ -16,6 +16,9 @@ class Software(Base):
     logo = Column(String(255))
     official_url = Column(String(255))
     require_login = Column(Boolean, default=True, nullable=False)  # 是否需要登录才能下载
+    screenshot_url_1 = Column(String(500), nullable=True)  # 软件界面图 1
+    screenshot_url_2 = Column(String(500), nullable=True)  # 软件界面图 2
+    screenshot_url_3 = Column(String(500), nullable=True)  # 软件界面图 3
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

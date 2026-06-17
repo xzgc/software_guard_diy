@@ -57,6 +57,14 @@ async def lifespan(app: FastAPI):
                     conn.commit()
                 except Exception:
                     pass
+            # 软件界面图字段迁移
+            for col in ('screenshot_url_1', 'screenshot_url_2', 'screenshot_url_3'):
+                if col not in sw_columns:
+                    try:
+                        conn.execute(text(f"ALTER TABLE software ADD COLUMN {col} VARCHAR(500)"))
+                        conn.commit()
+                    except Exception:
+                        pass
         # SoftwareVersion 表：original_download_url 字段
         if 'software_versions' in inspector.get_table_names():
             sv_columns = [c['name'] for c in inspector.get_columns('software_versions')]
