@@ -464,6 +464,39 @@ async def upload_screenshot(
     }
 
 
+@router.delete("/{software_id}/screenshots/{slot}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_screenshot(
+    software_id: int,
+    slot: int,
+    current_user: User = Depends(require_ops),
+    db: Session = Depends(get_db)
+):
+    """删除软件界面图（slot 1/2/3）"""
+    if slot not in (1, 2, 3):
+        raise HTTPException(status_code=400, detail="slot 必须是 1/2/3")
+
+    software = db.query(Software).filter(Software.id == software_id).first()
+    if not software:
+        raise HTTPException(status_code=404, detail="软件不存在")
+
+    old_url = getattr(software, f"screenshot_url_{slot}")
+    if old_url and old_url.startswith("/api/software/"):
+        old_filename = old_url.split("/")[-1]
+        storage_path = get_storage_path(db)
+        screenshot_dir = os.path.join(storage_path, "screenshots")
+        old_path = os.path.join(screenshot_dir, old_filename)
+        if os.path.exists(old_path):
+            try:
+                os.remove(old_path)
+            except Exception:
+                pass
+
+    setattr(software, f"screenshot_url_{slot}", None)
+    db.commit()
+
+    return None
+
+
 @router.post("/{software_id}/logo", response_model=dict)
 async def upload_logo(
     software_id: int,
