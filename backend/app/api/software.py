@@ -73,6 +73,9 @@ async def list_software(
             logo=sw.logo,
             official_url=sw.official_url,
             require_login=sw.require_login if sw.require_login is not None else True,
+            screenshot_url_1=sw.screenshot_url_1,
+            screenshot_url_2=sw.screenshot_url_2,
+            screenshot_url_3=sw.screenshot_url_3,
             latest_version=latest_version.version if latest_version else None,
             version_count=len(versions),
             total_downloads=total_downloads

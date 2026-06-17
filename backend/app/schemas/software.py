@@ -12,6 +12,9 @@ class SoftwareBase(BaseModel):
     logo: Optional[str] = None
     official_url: Optional[str] = None
     require_login: bool = True  # 是否需要登录才能下载
+    screenshot_url_1: Optional[str] = None  # 软件界面图 1
+    screenshot_url_2: Optional[str] = None  # 软件界面图 2
+    screenshot_url_3: Optional[str] = None  # 软件界面图 3
 
     @field_validator('icon_url', 'logo', 'official_url', mode='before')
     @classmethod
@@ -41,6 +44,9 @@ class SoftwareUpdate(BaseModel):
     logo: Optional[str] = None
     official_url: Optional[str] = None
     require_login: Optional[bool] = None  # 是否需要登录才能下载
+    screenshot_url_1: Optional[str] = None  # 软件界面图 1
+    screenshot_url_2: Optional[str] = None  # 软件界面图 2
+    screenshot_url_3: Optional[str] = None  # 软件界面图 3
 
     @field_validator('icon_url', 'logo', 'official_url', mode='before')
     @classmethod
@@ -122,6 +128,9 @@ class SoftwareListResponse(BaseModel):
     logo: Optional[str]
     official_url: Optional[str]
     require_login: bool = True
+    screenshot_url_1: Optional[str] = None
+    screenshot_url_2: Optional[str] = None
+    screenshot_url_3: Optional[str] = None
     latest_version: Optional[str]
     version_count: int
     total_downloads: int
