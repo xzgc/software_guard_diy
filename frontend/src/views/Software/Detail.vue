@@ -314,6 +314,60 @@
             <div style="margin-top: 4px; color: #999; font-size: 12px;">当前Logo</div>
           </div>
         </a-form-item>
+        <a-card title="软件界面图（最多 3 张）" size="small" class="screenshot-card">
+          <a-row :gutter="16">
+            <a-col :span="8" v-for="slot in 3" :key="slot">
+              <div class="screenshot-slot">
+                <div class="screenshot-preview">
+                  <img
+                    v-if="software[`screenshot_url_${slot}`]"
+                    :src="software[`screenshot_url_${slot}`]"
+                    alt="界面图"
+                  />
+                  <div v-else class="screenshot-empty">+ 上传截图</div>
+                  <a-button
+                    v-if="software[`screenshot_url_${slot}`]"
+                    shape="circle"
+                    size="small"
+                    danger
+                    class="screenshot-delete"
+                    :loading="screenshotLoading[slot - 1]"
+                    @click="handleDeleteScreenshot(slot)"
+                  >
+                    <template #icon><DeleteOutlined /></template>
+                  </a-button>
+                </div>
+                <a-tabs v-model:activeKey="screenshotTabs[slot - 1]" size="small">
+                  <a-tab-pane key="upload" tab="上传图片">
+                    <a-upload
+                      :before-upload="(file) => handleFileScreenshot(file, slot)"
+                      :show-upload-list="false"
+                      accept="image/*"
+                    >
+                      <a-button size="small">选择图片</a-button>
+                    </a-upload>
+                  </a-tab-pane>
+                  <a-tab-pane key="url" tab="输入URL">
+                    <a-input
+                      v-model:value="screenshotUrlInputs[slot - 1]"
+                      placeholder="https://example.com/screenshot.png"
+                      size="small"
+                    >
+                      <template #suffix>
+                        <a-button
+                          type="link"
+                          size="small"
+                          :loading="screenshotLoading[slot - 1]"
+                          @click="handleUrlScreenshot(slot)"
+                        >应用</a-button>
+                      </template>
+                    </a-input>
+                  </a-tab-pane>
+                </a-tabs>
+              </div>
+            </a-col>
+          </a-row>
+        </a-card>
         <a-form-item label="官网">
           <a-input v-model:value="editForm.official_url" />
         </a-form-item>
@@ -370,6 +424,11 @@ const versionForm = ref({
 const fileList = ref([])
 const logoFileList = ref([])
 const logoTab = ref('upload')  // 'upload' | 'url'
+
+// 软件界面图状态（3 个槽位）
+const screenshotTabs = ref(['', '', ''])  // 每个 slot 当前激活的 tab
+const screenshotUrlInputs = ref(['', '', ''])  // 每个 slot 的 URL 输入
+const screenshotLoading = ref([false, false, false])  // 每个 slot 的 loading
 
 const isEditVersionMode = ref(false)
 const editingVersionId = ref(null)
@@ -562,6 +621,70 @@ const isValidLogoUrl = (url) => {
 
 const onLogoUrlError = () => {
   message.error('Logo URL 加载失败，请检查地址是否正确')
+}
+
+// ============= 软件界面图相关 =============
+
+const handleDeleteScreenshot = async (slot) => {
+  screenshotLoading.value[slot - 1] = true
+  try {
+    await softwareApi.deleteScreenshot(route.params.id, slot)
+    message.success('截图已删除')
+    await loadDetail()
+  } catch (e) {
+    message.error('删除失败：' + (e.response?.data?.detail || e.message))
+  } finally {
+    screenshotLoading.value[slot - 1] = false
+  }
+}
+
+const handleUrlScreenshot = async (slot) => {
+  const url = screenshotUrlInputs.value[slot - 1].trim()
+  if (!url) {
+    message.warning('请输入图片URL')
+    return
+  }
+  screenshotLoading.value[slot - 1] = true
+  try {
+    const formData = new FormData()
+    formData.append('slot', slot)
+    formData.append('url', url)
+    await softwareApi.uploadScreenshot(route.params.id, slot, formData)
+    message.success('截图已设置')
+    screenshotUrlInputs.value[slot - 1] = ''
+    await loadDetail()
+  } catch (e) {
+    message.error('设置失败：' + (e.response?.data?.detail || e.message))
+  } finally {
+    screenshotLoading.value[slot - 1] = false
+  }
+}
+
+const handleFileScreenshot = async (file, slot) => {
+  const isImage = /\.(png|jpg|jpeg|gif|svg|webp)$/i.test(file.name)
+  if (!isImage) {
+    message.error('仅支持 png/jpg/jpeg/gif/svg/webp 格式')
+    return false
+  }
+  const isLt5M = file.size / 1024 / 1024 < 5
+  if (!isLt5M) {
+    message.error('图片大小不能超过 5MB')
+    return false
+  }
+  screenshotLoading.value[slot - 1] = true
+  try {
+    const formData = new FormData()
+    formData.append('slot', slot)
+    formData.append('file', file)
+    await softwareApi.uploadScreenshot(route.params.id, slot, formData)
+    message.success('截图上传成功')
+    await loadDetail()
+  } catch (e) {
+    message.error('上传失败：' + (e.response?.data?.detail || e.message))
+  } finally {
+    screenshotLoading.value[slot - 1] = false
+  }
+  return false  // 阻止 antdv 默认上传
 }
 
 const openEditModal = () => {
@@ -931,3 +1054,43 @@ onMounted(() => {
   loadDetail()
 })
 </script>
+
+<style scoped>
+.screenshot-slot {
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  padding: 12px;
+  background: #fafafa;
+}
+
+.screenshot-preview {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  background: #fff;
+  border: 1px dashed #d9d9d9;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.screenshot-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.screenshot-empty {
+  color: #999;
+  font-size: 13px;
+}
+
+.screenshot-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+</style>
