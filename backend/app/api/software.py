@@ -595,6 +595,30 @@ async def get_logo_file_direct(filename: str, current_user: Optional[User] = Dep
     return FileResponse(file_path)
 
 
+@router.get("/{software_id}/screenshots/file/{filename}")
+async def get_screenshot_file(
+    software_id: int,
+    filename: str,
+    current_user: Optional[User] = Depends(get_optional_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取界面图文件（支持游客访问）"""
+    from fastapi.responses import FileResponse
+
+    software = db.query(Software).filter(Software.id == software_id).first()
+    if not software:
+        raise HTTPException(status_code=404, detail="软件不存在")
+
+    safe_name = sanitize_filename(filename)
+    storage_path = get_storage_path(db)
+    screenshot_dir = os.path.join(storage_path, "screenshots")
+    file_path = validate_path_within_dir(os.path.join(screenshot_dir, safe_name), screenshot_dir)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="截图文件不存在")
+
+    return FileResponse(file_path)
+
+
 @router.put("/{software_id}/versions/{version_id}", response_model=SoftwareVersionResponse)
 async def update_version(
     software_id: int,
