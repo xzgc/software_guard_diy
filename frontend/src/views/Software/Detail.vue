@@ -113,6 +113,34 @@
                 </template>
               </template>
             </a-table>
+            <div
+              v-if="software.screenshot_url_1 || software.screenshot_url_2 || software.screenshot_url_3"
+              class="software-screenshots-section"
+            >
+              <h3 class="section-title">软件界面</h3>
+              <a-image-preview-group>
+                <a-space>
+                  <a-image
+                    v-if="software.screenshot_url_1"
+                    :src="software.screenshot_url_1"
+                    :width="240"
+                    alt="界面图 1"
+                  />
+                  <a-image
+                    v-if="software.screenshot_url_2"
+                    :src="software.screenshot_url_2"
+                    :width="240"
+                    alt="界面图 2"
+                  />
+                  <a-image
+                    v-if="software.screenshot_url_3"
+                    :src="software.screenshot_url_3"
+                    :width="240"
+                    alt="界面图 3"
+                  />
+                </a-space>
+              </a-image-preview-group>
+            </div>
           </a-tab-pane>
           <a-tab-pane key="downloads" tab="下载记录" v-if="userStore.isOps()">
             <a-table
@@ -1092,5 +1120,18 @@ onMounted(() => {
   position: absolute;
   top: 4px;
   right: 4px;
+}
+
+.software-screenshots-section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.software-screenshots-section .section-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  color: rgba(0, 0, 0, 0.85);
 }
 </style>
