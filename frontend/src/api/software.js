@@ -62,5 +62,15 @@ export const softwareApi = {
     const formData = new FormData()
     formData.append('file', file)
     return api.post(`/software/${softwareId}/logo`, formData)
+  },
+
+  // 上传/设置软件界面图
+  uploadScreenshot(softwareId, slot, formData) {
+    return api.post(`/software/${softwareId}/screenshots`, formData)
+  },
+
+  // 删除软件界面图
+  deleteScreenshot(softwareId, slot) {
+    return api.delete(`/software/${softwareId}/screenshots/${slot}`)
   }
 }
