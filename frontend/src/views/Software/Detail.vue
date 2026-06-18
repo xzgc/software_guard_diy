@@ -457,6 +457,7 @@ const logoTab = ref('upload')  // 'upload' | 'url'
 const screenshotTabs = ref(['', '', ''])  // 每个 slot 当前激活的 tab
 const screenshotUrlInputs = ref(['', '', ''])  // 每个 slot 的 URL 输入
 const screenshotLoading = ref([false, false, false])  // 每个 slot 的 loading
+const pasteActive = ref(false)  // 仅在编辑弹窗打开时激活 Ctrl+V 粘贴
 
 const isEditVersionMode = ref(false)
 const editingVersionId = ref(null)
@@ -698,6 +699,85 @@ const validateScreenshotFile = (file) => {
     return '图片大小不能超过 5MB'
   }
   return null  // 校验通过
+}
+
+const getPasteTargetSlots = (imageCount) => {
+  const slots = []
+  // 优先找空 slot
+  for (let i = 1; i <= 3; i++) {
+    if (!software.value[`screenshot_url_${i}`]) {
+      slots.push(i)
+      if (slots.length === imageCount) return slots
+    }
+  }
+  // 不够就追加（按 slot 1 → 2 → 3 顺序，覆盖最早的）
+  let next = 1
+  while (slots.length < imageCount && next <= 3) {
+    if (!slots.includes(next)) slots.push(next)
+    next++
+  }
+  return slots.slice(0, Math.min(imageCount, 3))
+}
+
+const handleClipboardPaste = async (event) => {
+  if (!pasteActive.value) return
+
+  const items = event.clipboardData?.items
+  if (!items) return
+
+  // 收集所有 image/* Blob，构造 paste-{timestamp}.{ext} File
+  const imageFiles = []
+  for (const item of items) {
+    if (item.kind === 'file' && item.type.startsWith('image/')) {
+      const blob = item.getAsFile()
+      if (blob) {
+        const ext = (blob.type.split('/')[1] || 'png').toLowerCase()
+        const filename = `paste-${Date.now()}.${ext}`
+        imageFiles.push(new File([blob], filename, { type: blob.type }))
+      }
+    }
+  }
+
+  if (imageFiles.length === 0) {
+    message.info('剪贴板中没有图片')
+    return
+  }
+
+  if (imageFiles.length > 3) {
+    message.warning(`剪贴板有 ${imageFiles.length} 张图片，最多粘贴 3 张`)
+  }
+
+  const targetSlots = getPasteTargetSlots(imageFiles.length)
+  let successCount = 0
+
+  for (let i = 0; i < targetSlots.length; i++) {
+    const slot = targetSlots[i]
+    const file = imageFiles[i]
+
+    const error = validateScreenshotFile(file)
+    if (error) {
+      message.error(`slot ${slot}：${error}`)
+      continue
+    }
+
+    screenshotLoading.value[slot - 1] = true
+    try {
+      const formData = new FormData()
+      formData.append('slot', slot)
+      formData.append('file', file)
+      await softwareApi.uploadScreenshot(route.params.id, slot, formData)
+      successCount++
+    } catch (e) {
+      message.error(`slot ${slot} 上传失败：${e.response?.data?.detail || e.message}`)
+    } finally {
+      screenshotLoading.value[slot - 1] = false
+    }
+  }
+
+  if (successCount > 0) {
+    await loadDetail()
+    message.success(`已粘贴 ${successCount} 张截图`)
+  }
 }
 
 const handleFileScreenshot = async (file, slot) => {
