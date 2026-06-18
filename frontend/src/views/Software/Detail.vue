@@ -688,15 +688,22 @@ const handleUrlScreenshot = async (slot) => {
   }
 }
 
-const handleFileScreenshot = async (file, slot) => {
+const validateScreenshotFile = (file) => {
   const isImage = /\.(png|jpg|jpeg|gif|svg|webp)$/i.test(file.name)
   if (!isImage) {
-    message.error('仅支持 png/jpg/jpeg/gif/svg/webp 格式')
-    return false
+    return '仅支持 png/jpg/jpeg/gif/svg/webp 格式'
   }
   const isLt5M = file.size / 1024 / 1024 < 5
   if (!isLt5M) {
-    message.error('图片大小不能超过 5MB')
+    return '图片大小不能超过 5MB'
+  }
+  return null  // 校验通过
+}
+
+const handleFileScreenshot = async (file, slot) => {
+  const error = validateScreenshotFile(file)
+  if (error) {
+    message.error(error)
     return false
   }
   screenshotLoading.value[slot - 1] = true
