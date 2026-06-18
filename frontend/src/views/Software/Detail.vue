@@ -409,7 +409,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import {
@@ -1167,6 +1167,15 @@ const loadCategories = async () => {
 onMounted(() => {
   loadCategories()
   loadDetail()
+  document.addEventListener('paste', handleClipboardPaste)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('paste', handleClipboardPaste)
+})
+
+watch(showEditModal, (newVal) => {
+  pasteActive.value = newVal
 })
 </script>
 
