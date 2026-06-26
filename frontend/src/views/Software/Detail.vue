@@ -186,7 +186,7 @@
     <a-modal
       v-model:open="showVersionModal"
       :title="isEditVersionMode ? '编辑版本' : '上传新版本'"
-      @ok="isEditVersionMode ? handleUpdateVersion : handleUploadVersion"
+      @ok="handleVersionModalOk"
       :confirm-loading="uploadLoading"
       :ok-button-props="{ disabled: uploading }"
       :maskClosable="false"
@@ -821,6 +821,16 @@ const resetUploadForm = () => {
   uploadDetailText.value = ''
   versionTab.value = 'upload'
   activeSessionId = null
+}
+
+// 版本弹窗确定按钮统一分发（不能用 inline 三元，Vue 编译器会把
+// `@ok="a ? b : c"` 编译成 `o => a ? b : c` —— 返回函数引用但不调用）
+const handleVersionModalOk = () => {
+  if (isEditVersionMode.value) {
+    handleUpdateVersion()
+  } else {
+    handleUploadVersion()
+  }
 }
 
 const handleUploadVersion = async () => {
