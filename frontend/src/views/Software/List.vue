@@ -219,9 +219,8 @@
                 placeholder="https://example.com/logo.png"
                 @input="onLogoUrlInput"
               />
-              <div style="margin-top: 4px; color: #999; font-size: 12px;">支持 png, jpg, jpeg, gif, svg, webp, ico 格式的 URL</div>
               <div v-if="uploadForm.logo_url" style="margin-top: 8px;">
-                <img :src="uploadForm.logo_url" alt="预览" style="max-width: 80px; max-height: 80px; object-fit: contain; border: 1px solid #d9d9d9; border-radius: 4px;" @error="onLogoUrlError" />
+                <img :src="uploadForm.logo_url" alt="预览" style="max-width: 80px; max-height: 80px; object-fit: contain; border: 1px solid #d9d9d9; border-radius: 4px;" />
               </div>
             </a-tab-pane>
           </a-tabs>
@@ -378,16 +377,6 @@ const onLogoUrlInput = () => {
   }
 }
 
-// 校验 Logo URL 格式
-const isValidLogoUrl = (url) => {
-  if (!url) return true
-  return /\.(png|jpe?g|gif|svg|webp|ico)(\?.*)?$/i.test(url)
-}
-
-const onLogoUrlError = () => {
-  message.error('Logo URL 加载失败，请检查地址是否正确')
-}
-
 // 软件列表中的 logo 图片加载失败时，隐藏破损图标
 const onLogoError = (e) => {
   e.target.style.display = 'none'
@@ -398,12 +387,6 @@ const onLogoError = (e) => {
 const handleUpload = async () => {
   if (!uploadForm.value.name) {
     message.error('请输入软件名称')
-    return
-  }
-
-  // 校验 Logo URL（如有）
-  if (uploadForm.value.logo_url && !isValidLogoUrl(uploadForm.value.logo_url)) {
-    message.error('Logo URL 格式不正确，仅支持 png, jpg, jpeg, gif, svg, webp, ico')
     return
   }
 
